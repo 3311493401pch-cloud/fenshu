@@ -39,9 +39,13 @@ function adminAuth(req, res, next) {
   next();
 }
 
+// 等待 DB 就绪的中间件
+const ensureDb = (req, res, next) => {
+  getDb().then(() => next()).catch(err => res.status(500).json({ error: '数据库未就绪' }));
+};
+
 // ====== 成绩提交（公共） ======
-app.post('/api/scores', async (req, res) => {
-  await getDb();
+app.post('/api/scores', ensureDb, async (req, res) => {
 
   const { name, qq, high_math, theory, practical, english } = req.body;
 
@@ -102,8 +106,7 @@ function maskQQ(qq) {
   return qq.slice(0, 3) + '*'.repeat(qq.length - 3);
 }
 
-app.get('/api/scores', async (req, res) => {
-  await getDb();
+app.get('/api/scores', ensureDb, async (req, res) => {
 
   const rows = prepare(
     'SELECT id, name, qq, high_math, theory, practical, english, total_score, created_at FROM scores WHERE batch_type = ? ORDER BY total_score DESC, id ASC'
@@ -122,8 +125,7 @@ app.get('/api/scores', async (req, res) => {
 // ====== 管理员 API ======
 
 // 管理员查看所有批次数据（不匿名）
-app.get('/api/admin/scores', adminAuth, async (req, res) => {
-  await getDb();
+app.get('/api/admin/scores', adminAuth, ensureDb, async (req, res) => {
   const { batch_type } = req.query;
 
   let rows;
@@ -148,8 +150,7 @@ app.get('/api/admin/scores', adminAuth, async (req, res) => {
 });
 
 // 管理员修改成绩
-app.put('/api/admin/scores/:id', adminAuth, async (req, res) => {
-  await getDb();
+app.put('/api/admin/scores/:id', adminAuth, ensureDb, async (req, res) => {
   const { id } = req.params;
   const { name, qq, high_math, theory, practical, english } = req.body;
 
@@ -176,8 +177,7 @@ app.put('/api/admin/scores/:id', adminAuth, async (req, res) => {
 });
 
 // 管理员删除成绩
-app.delete('/api/admin/scores/:id', adminAuth, async (req, res) => {
-  await getDb();
+app.delete('/api/admin/scores/:id', adminAuth, ensureDb, async (req, res) => {
   const { id } = req.params;
 
   const existing = prepare('SELECT * FROM scores WHERE id = ?').all(parseInt(id));
@@ -202,8 +202,10 @@ if (process.env.NODE_ENV === 'production') {
 
 // ====== 启动 ======
 const PORT = process.env.PORT || 3001;
-getDb().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+
+// 先监听端口（确保健康检查立即可用）
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  // 后台初始化数据库
+  getDb().then(() => console.log('Database ready')).catch(err => console.error('DB init error:', err));
 });
