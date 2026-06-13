@@ -15,5 +15,3 @@ services:
         value: "3000"
       - key: ADMIN_PASSWORD
         sync: false
-
-databases: []
