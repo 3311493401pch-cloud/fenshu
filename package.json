@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build:client": "npm --prefix client install && npm --prefix client run build",
-    "build:server": "npm --prefix server install",
+    "build:client": "cd client && npm install && npm run build",
+    "build:server": "cd server && npm install",
     "build": "npm run build:client && npm run build:server",
     "start": "node server/index.js"
   },
