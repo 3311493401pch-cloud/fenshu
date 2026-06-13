@@ -1,0 +1,14 @@
+{
+  "name": "fenshu",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:client": "npm --prefix client install && npm --prefix client run build",
+    "build:server": "npm --prefix server install",
+    "build": "npm run build:client && npm run build:server",
+    "start": "node server/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
